@@ -28,3 +28,5 @@ Get the [latest CI release](https://github.com/ahkehra/revanced-extended/release
 [inotia00](https://github.com/inotia00) for [revanced-extended patches](https://github.com/inotia00/revanced-patches).
 
 [Gnad Gnaoh](https://github.com/gnadgnaoh) for helping me figure some stuff out.
+
+[NoNameEXE](https://github.com/NoName-exe)
