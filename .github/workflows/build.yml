@@ -60,12 +60,22 @@ jobs:
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
           cp -f build.md build.tmp
 
-          yt_op=$(find build -maxdepth 1 -name "youtube-revanced-extended-magisk-*.zip" -printf '%P\n')
-          if [ -z "$yt_op" ]; then
-            echo "RELEASE_NAME=ReVanced eXtended" >> $GITHUB_OUTPUT
-          else
-            echo "RELEASE_NAME=$yt_op" >> $GITHUB_OUTPUT
-          fi
+          - name: Get output
+  id: get_output
+  run: |
+    DELIM="$(openssl rand -hex 8)"
+    echo "BUILD_LOG<<${DELIM}" >> "$GITHUB_OUTPUT"
+    cat build.md >> "$GITHUB_OUTPUT"
+    echo "${DELIM}" >> "$GITHUB_OUTPUT"
+    cp -f build.md build.tmp
+
+          PATCH_FILE=$(find temp/inotia00-rv -name "*.rvp" -print -quit)
+          RELEASE_NAME=$(
+            [ -n "$PATCH_FILE" ] && echo "revanced-extended-$(basename "$PATCH_FILE" | sed -E 's/.*-(v?[0-9]+\.[0-9]+\.[0-9]+(-dev\.[0-9]+)?)\.rvp/\1/')" \
+            || yt_op=$(find build -maxdepth 1 -name "youtube-revanced-extended-magisk-*.zip" -printf '%P\n') \
+               && [ -n "$yt_op" ] && echo "$yt_op" || echo "revanced-extended"
+          )
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_OUTPUT
 
       - name: Upload modules to release
         uses: svenstaro/upload-release-action@v2
