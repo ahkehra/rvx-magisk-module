@@ -60,12 +60,23 @@ jobs:
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
           cp -f build.md build.tmp
 
-          PATCH_FILE=$(find temp/inotia00-rv -name "*.rvp" -print -quit)
-          RELEASE_NAME=$(
-            [ -n "$PATCH_FILE" ] && echo "revanced-extended-$(basename "$PATCH_FILE" | sed -E 's/.*-(v?[0-9]+\.[0-9]+\.[0-9]+(-dev\.[0-9]+)?)\.rvp/\1/')" \
-            || yt_op=$(find build -maxdepth 1 -name "youtube-revanced-extended-magisk-*.zip" -printf '%P\n') \
-               && [ -n "$yt_op" ] && echo "$yt_op" || echo "revanced-extended"
-          )
+          PATCH_URL=$(grep -E 'patches-source\s*=' config.toml | cut -d'"' -f2)
+          if [ -n "$PATCH_URL" ]; then
+              PATCH_FILE=$(find temp/inotia00-rv -name "*.rvp" | head -n1)
+              if [ -n "$PATCH_FILE" ]; then
+                  PATCH_VERSION=$(basename "$PATCH_FILE" | sed -E 's/.*-(v?[0-9]+\.[0-9]+\.[0-9]+(-dev\.[0-9]+)?)\.rvp/\1/')
+                  RELEASE_NAME="revanced-extended-$PATCH_VERSION"
+              else
+                  RELEASE_NAME="revanced-extended"
+              fi
+          else
+              yt_op=$(find build -maxdepth 1 -name "youtube-revanced-extended-magisk-*.zip" -printf '%P\n')
+              if [ -n "$yt_op" ]; then
+                  RELEASE_NAME="$yt_op"
+              else
+                  RELEASE_NAME="revanced-extended"
+              fi
+          fi
           echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_OUTPUT
           
       - name: Upload modules to release
