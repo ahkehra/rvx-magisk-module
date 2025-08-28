@@ -60,13 +60,41 @@ jobs:
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
           cp -f build.md build.tmp
 
-          yt_op=$(find build -maxdepth 1 -name "youtube-revanced-extended-magisk-*.zip" -printf '%P\n')
-          if [ -z "$yt_op" ]; then
-            echo "RELEASE_NAME=ReVanced eXtended" >> $GITHUB_OUTPUT
+          PATCH_URL=$(grep -E 'patches-source\s*=' config.toml | cut -d'"' -f2)
+          if [ -n "$PATCH_URL" ]; then
+              PATCH_FILE=$(find temp/inotia00-rv -name "*.rvp" | head -n1)
+              if [ -n "$PATCH_FILE" ]; then
+                  PATCH_VERSION=$(basename "$PATCH_FILE" | sed -E 's/.*-(v?[0-9]+\.[0-9]+\.[0-9]+(-dev\.[0-9]+)?)\.rvp/\1/')
+                  RELEASE_NAME="revanced-extended-$PATCH_VERSION"
+              else
+                  RELEASE_NAME="revanced-extended"
+              fi
           else
-            echo "RELEASE_NAME=$yt_op" >> $GITHUB_OUTPUT
+              yt_op=$(find build -maxdepth 1 -name "youtube-revanced-extended-magisk-*.zip" -printf '%P\n')
+              if [ -n "$yt_op" ]; then
+                  RELEASE_NAME="$yt_op"
+              else
+                  RELEASE_NAME="revanced-extended"
+              fi
           fi
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_OUTPUT
 
+      - name: Delete old pre-releases (only on pre-release branch)
+        if: github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking for old pre-releases on dev branch..."
+          RELEASES=$(gh release list --limit 100 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease==true) | .tagName')
+          for TAG in $RELEASES; do
+            if [ "$TAG" -eq "${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}" ]; then
+              continue
+            fi
+            echo "Deleting old pre-release $TAG"
+            gh release delete "$TAG" --yes || true
+            git push origin :refs/tags/"$TAG" || true
+          done
+          
       - name: Upload modules to release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -77,6 +105,7 @@ jobs:
           tag: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
           file_glob: true
           overwrite: true
+          prerelease: true
 
       - name: Update changelog and Magisk update json
         id: update_config
